@@ -114,7 +114,6 @@ O diretório é `app.getPath('userData')` do Electron, em instalações novas, `
 
 ## Referências
 
-- [LimitBar](https://github.com/dancik/limitbar): inspiração de experiência; implementação própria.
 - [Codex app-server](https://learn.chatgpt.com/docs/app-server).
 - [Claude status line](https://code.claude.com/docs/en/statusline), [variáveis de ambiente](https://code.claude.com/docs/en/env-vars) e [CLI](https://code.claude.com/docs/en/cli-reference).
 - [Electron: materiais](https://www.electronjs.org/docs/latest/api/base-window) e [nativeTheme](https://www.electronjs.org/docs/latest/api/native-theme).
