@@ -16,7 +16,7 @@ const isPopup = new URLSearchParams(location.search).get('view') === 'popup';
 document.title = isPopup ? 'UDV · Resumo' : 'UDV · Contas';
 const api = window.udv;
 const initialUi: UiState = { theme: 'system', reduceTransparency: false, dark: matchMedia('(prefers-color-scheme: dark)').matches,
-  reduced: false, highContrast: false, platform: navigator.platform.startsWith('Mac') ? 'darwin' : 'win32', material: 'solid', pinned: false, version: '0.3.0' };
+  reduced: false, highContrast: false, platform: navigator.platform.startsWith('Mac') ? 'darwin' : 'win32', material: 'solid', pinned: false, version: '0.1.0' };
 function Brand({ provider }: { provider: Provider }) {
   return <span className={`provider-icon ${provider}`} aria-hidden="true">{provider === 'claude'
     ? <img src={claudeLogo} alt="" /> : <><img className="logo-dark" src={chatgptWhite} alt="" /><img className="logo-light" src={chatgptBlack} alt="" /></>}</span>;

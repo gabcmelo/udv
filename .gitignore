@@ -4,3 +4,9 @@ release/
 .DS_Store
 *.log
 test-results/
+
+# Ícones derivados dos SVGs, recriados pelos scripts de desenvolvimento/build.
+/electron/assets/*.png
+/electron/assets/*.ico
+/electron/assets/*.icns
+/electron/assets/.generated.sha256

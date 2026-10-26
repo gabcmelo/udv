@@ -1,121 +1,77 @@
-# UDV
+# UDV · Usage Dash View
 
-Suas contas de IA, de relance. Veja quanto ainda pode usar no Claude e no Codex, e quando seus limites renovam. O UDV fica junto ao relógio, no Windows e no macOS. Seus dados ficam neste computador.
+**Suas contas de IA, de relance.**
 
-## Usar a versão 0.3.0
+Acompanhe quanto ainda pode usar no **Claude** e no **Codex**, e quando seus limites renovam. O UDV fica junto ao relógio do computador e reúne suas contas em um só lugar.
 
-O instalador Windows é `release/UDV-0.3.0-Windows-x64.exe`. Os CLIs dos provedores precisam estar instalados no computador; Node.js não é necessário para executar o app instalado.
+<p align="center">
+  <img src="docs/images/resumo.png" alt="Resumo do UDV no tema escuro, com quatro contas de demonstração de Claude e Codex, anéis de consumo, saldo e horários de renovação." width="380">
+  <br>
+  <sub>Interface no Windows com dados fictícios do modo demonstração.</sub>
+</p>
 
-- Clique no ícone junto ao relógio para abrir/fechar o **resumo compacto de 380px**.
-- O resumo mostra cada conta, quanto resta, quando renova e a idade da leitura. Clique na conta para expandir seus detalhes e ações.
-- Anéis concêntricos mostram o **consumo** de cada janela independente: quanto mais cheio o anel, maior o uso. A legenda informa usado, saldo e renovação. Claude usa tons de laranja; Codex, off-white. A mesma visualização aparece no painel, com contraste adaptado ao tema.
-- Leitura ausente ou expirada aparece com anel tracejado e “—”; leitura antiga fica atenuada. Alertas mantêm símbolos e texto. Nenhuma cota é somada entre janelas.
-- **Escape** ou clique fora fecham o resumo. **Fixar** permite mantê-lo aberto; fechar pelo ícone/Escape desfaz o fixar.
-- **Adicionar conta** abre o cadastro no painel. **Abrir painel** mostra uma janela maior para busca, filtros, renomeação, favoritos e remoção.
-- Fechar o painel mantém o app na bandeja. Para encerrar, use **Sair do UDV** no menu contextual do ícone.
-- Tema do sistema, claro, escuro e transparência reduzida ficam no painel, em **Aparência e ajuda**, e no menu da bandeja. Favoritos e preferências persistem entre execuções.
-- “Explorar com dados de exemplo” ativa uma demonstração explicitamente identificada nas duas janelas. Os exemplos não são salvos como contas ou leituras reais. Saia da demonstração para conectar contas.
+## O que você acompanha
 
-## Conectar contas
+- **Várias contas, uma visão:** contas pessoais e de trabalho de Claude e Codex no mesmo resumo.
+- **Consumo e saldo:** anéis mostram o uso de cada janela, com percentuais restantes e horários de renovação ao lado.
+- **Leituras automáticas:** saiba quando cada leitura foi feita e identifique dados antigos ou indisponíveis.
+- **Contas organizadas:** dê nomes aos perfis, marque favoritos e use busca e filtros no painel.
+- **Aparência do seu jeito:** tema claro, escuro ou do sistema, com opção de reduzir transparência.
 
-1. Clique em **Adicionar conta**, escolha o provedor e dê um nome ao perfil.
-2. **Codex:** conclua o login ChatGPT no navegador. Conecte uma conta por vez e escolha o usuário correto. A sessão do navegador pode sugerir a conta anterior; a identidade retornada pelo CLI aparece no detalhe.
-3. **Claude:** conclua `claude auth login` no terminal aberto pelo UDV. O painel passa a consultar `/usage` automaticamente, sem enviar mensagens ou precisar de “oi”. A status line continua fornecendo leituras complementares durante o uso. **Abrir Claude** volta ao mesmo perfil.
-4. Repita para cada assinatura. Não há limite de contas imposto pelo app.
+Os perfis e preferências ficam no computador. Não há servidor UDV nem sincronização entre dispositivos; os CLIs se comunicam diretamente com seus provedores.
 
-Os perfis são separados dos seus logins atuais. Duas entradas conectadas à mesma assinatura mostram a mesma cota; criar outro perfil não cria outra assinatura ou limite.
+## Começar
 
-## Leituras e limites
+Estamos preparando a **versão 0.1 para Windows e macOS**, com instaladores pelo GitHub Releases e download automático de atualizações. Veja o [plano da primeira versão](docs/atualizacoes.md) e o [changelog](CHANGELOG.md).
 
-- Codex: login pelo app-server oficial, identidade, plano, janelas e resets disponíveis quando informados. Consulta a cada minuto.
-- Claude: executa o comando local `/usage` a cada **20 minutos**, isolado de hooks, ferramentas, MCP e persistência de sessão. A versão instalada foi verificada com zero turnos, zero tokens de inferência e custo zero. O coletor rejeita respostas com contadores de inferência diferentes de zero; nunca substitui `/usage` por mensagens de conversa.
-- **Atualizar** pode antecipar a consulta de Claude após um intervalo mínimo de **1 minuto**. Erros de limitação impõem espera progressiva de 20–60 minutos; reiniciar o app não elimina essa espera. O horário da próxima consulta automática aparece nos detalhes da conta.
-- A status line continua sendo uma fonte complementar. Entre as duas fontes, a leitura mais recente é exibida, preservando seu horário real.
-- Janelas vêm do provedor: não se presume que toda conta tenha 5h e semana.
-- A interface diferencia sem leitura, antiga (45 minutos), expirada, erro, conectando, desconectada, perto do limite e esgotada. Ausência nunca vira 0%; expiração nunca confirma renovação.
-- A bandeja usa a mesma interpretação de frescor da interface. Seu badge indica problema confirmado ou dado desconhecido; o tooltip resume em texto. Cotas de assinaturas diferentes não são somadas nem calculadas em média.
+### Executar durante o desenvolvimento
 
-## Materiais nativos
-
-- **Windows 11 22H2+:** Acrylic nativo no popup e Mica no painel, via Electron/DWM. O conteúdo continua React; os controles não foram reescritos em WinUI.
-- **macOS 26+:** integração com o módulo opcional `electron-liquid-glass`, que incorpora `NSGlassEffectView`. Somente `addView` é usado; nenhum método experimental `unstable_*`. Se indisponível, o app usa Vibrancy.
-- **Acessibilidade:** transparência reduzida e alto contraste do sistema são respeitados. Existe também a preferência local de fundo sólido. O módulo de vidro não é carregado no Windows.
-
-Windows foi compilado, executado e inspecionado nesta sessão. A implementação Mac precisa ser compilada e validada em um Mac; não há teste visual de Liquid Glass real aqui. Instaladores ainda sem assinatura/notarização.
-
-## Executar o código
-
-Requisitos: Node.js 22.12+ e os executáveis nativos dos CLIs desejados.
+Use **Node.js 22.12+**, npm e o **CLI nativo de Claude ou Codex**, conforme as contas que quiser conectar. No Windows, o executável do CLI precisa ser `.exe`; somente um wrapper `.cmd` não basta.
 
 ```sh
-npm install
+git clone https://github.com/gabcmelo/udv.git
+cd udv
+npm ci
 npm run dev
 ```
 
-Produção local:
+O alvo da 0.1 é **Windows 11 22H2+** e **macOS 26+**. A integração macOS ainda precisa de build e validação em um Mac antes do lançamento.
 
-```sh
-npm run build
-npm start
-```
+Quer conhecer a interface primeiro? Selecione **Explorar com dados de exemplo**. A demonstração não exige login e não salva as contas fictícias como contas reais.
 
-`npm run preview` serve somente o renderizador no navegador. Conexões reais e materiais nativos exigem Electron. As referências de design estão em `design/`, separadas da aplicação.
+### Conectar suas contas
 
-## Testes e distribuição
+1. Abra **Adicionar conta**, escolha Claude ou Codex e dê um nome ao perfil.
+2. Conclua o login: **Codex** abre o navegador; **Claude** abre um terminal para autenticação.
+3. Repita para as outras contas. Cada perfil mantém seu login separado dos seus logins atuais nos CLIs.
 
-```sh
-npm test
-npm run build
-npm run test:desktop
-node scripts/smoke-codex.cjs
-```
+Duas entradas conectadas à mesma assinatura compartilham a mesma cota. Criar outro perfil não cria um novo limite.
 
-O smoke desktop usa um perfil temporário e Electron real. Exercita as duas janelas, bandeja, teclado, fixar/blur, cadastro, filtros, favoritos, persistência e preferências. Não inicia login. O smoke Codex inicializa o app-server real com perfil desconectado e não chama um modelo.
+### No dia a dia
 
-```sh
-npm run dist:win
-# Em um Mac:
-npm run dist:mac
-```
+Clique no ícone da bandeja para abrir o resumo e em uma conta para ver os detalhes. Use **Fixar** para manter o resumo aberto ou **Abrir painel** para gerenciar as contas.
 
-Saídas em `release/`. O workflow manual `desktop-build.yml` compila Windows x64 e macOS arm64/x64 nos respectivos runners, sem publicar releases. O módulo macOS é uma dependência opcional de plataforma, empacotada fora do ASAR para carregar seu binário nativo. A indisponibilidade dela mantém o app funcional com fallback.
+**Escape** fecha o resumo e desfaz a fixação. Um clique fora também fecha o resumo quando ele não está fixado. Fechar o painel mantém o app na bandeja; para encerrar, escolha **Sair do UDV** no menu do ícone.
 
-## Dados e credenciais
+## Como interpretar as leituras
 
-O diretório é `app.getPath('userData')` do Electron, em instalações novas, `%APPDATA%/Usage Dash View` no Windows e `~/Library/Application Support/Usage Dash View` no Mac (no desenvolvimento, `usage-dash-view`). Se houver dados de versões anteriores, inclusive da versão chamada Lumebar, o UDV continua usando a pasta existente, sem mover perfis ou credenciais. O identificador de instalação `app.udv.desktop` também é mantido para preservar a continuidade das atualizações.
+| Provedor | Atualização | Observação |
+| --- | --- | --- |
+| Codex | A cada minuto | Consulta limites pelo app-server do CLI. |
+| Claude | A cada 20 minutos | Consulta local de `/usage`, com leituras complementares da status line. |
 
-- `accounts.json`: UUID, provedor, nome, favorito e criação. `preferences.json`: tema e transparência reduzida.
-- Cada conta tem `profiles/<uuid>`, usado como `CODEX_HOME` ou `CLAUDE_CONFIG_DIR` do subprocesso. Variáveis herdadas de autenticação dos provedores são removidas para não selecionar outra conta por acidente.
-- O Codex gerencia o próprio login. Esta versão usa o armazenamento `file` do CLI para isolar contas: o `auth.json` fica no perfil local. Não sincronize ou versione esses diretórios.
-- O Claude gerencia suas credenciais de acordo com o sistema operacional. O UDV não lê tokens. A status line é configurada somente no perfil criado pelo UDV, preservando seu `~/.claude/settings.json`.
-- A ponte do Claude salva somente percentuais, janelas e horário da leitura; não salva prompts, conteúdo de sessão ou tokens.
-- Remover uma conta pede confirmação, encerra o login pelo CLI e apaga somente seu perfil gerenciado. Feche os terminais dessa conta antes de removê-la.
-- Os CLIs continuam se comunicando com os provedores. Não há servidor UDV ou sincronização entre dispositivos.
+No Claude, **Atualizar** pode antecipar uma consulta após um intervalo mínimo de um minuto. Se o provedor limitar as consultas, o app aguarda de 20 a 60 minutos antes de tentar novamente.
 
-## Limitações
+As janelas e os limites dependem do provedor, plano e versão do CLI. Uma leitura ausente ou expirada aparece como **—**, nunca como 0%. As cotas de janelas ou assinaturas diferentes são exibidas separadamente.
 
-- As leituras de Claude dependem do plano e da versão do CLI. `/usage` deve oferecer a resposta local compatível. A status line complementar recebe dados somente das sessões abertas com o perfil UDV, mas não é necessária para a consulta automática.
-- Login real, atualização de tokens e cotas autenticadas precisam ser validados com as contas do usuário.
-- A resolução de executáveis cobre PATH, `~/.local/bin`, Homebrew, `~/.npm-global/bin` e o executável Codex distribuído para Windows. No Windows é necessário `.exe` nativo, não só wrapper `.cmd`.
-- Sem histórico, notificações ou inicialização automática nesta versão.
-- A posição do popup é limitada à área útil do monitor. Taskbar em outros lados e monitores negativos têm testes de cálculo; ainda é recomendável validar fisicamente monitores/DPI diferentes.
+Nesta versão, o app ainda não oferece histórico, notificações ou inicialização automática.
 
-## Estrutura
+## Mais detalhes
 
-- `src/`: componentes React do resumo e painel, estilos flat e assets oficiais.
-- `shared/usage.cjs`: estados, frescor, ordenação e resumo compartilhados com a bandeja.
-- `electron/main.cjs`: bandeja, janelas, ciclo de foco e IPC limitado aos frames principais.
-- `electron/popup-bounds.cjs`: cálculo de posição e limite do popup.
-- `electron/materials.cjs`: Acrylic, Mica, Liquid Glass, Vibrancy e fallback sólido.
-- `electron/providers.cjs`, `process.cjs`, `limits.cjs`: integração e normalização dos CLIs.
-- `electron/claude-usage.cjs`: consulta local de uso, parser de fusos/renovação, cache e controle de frequência/backoff por conta.
-- `electron/store.cjs`, `settings.cjs`: persistência local.
-- `design-qa.md`: comparação visual e limites da validação.
+- [Versões, Releases e atualizações do app](docs/atualizacoes.md): escopo e critérios para fechar a 0.1.
+- [Desenvolvimento e distribuição](docs/desenvolvimento.md): comandos, estrutura do código e builds.
+- [Dados e credenciais](docs/privacidade.md): armazenamento local, isolamento e remoção de contas.
 
-## Referências
+---
 
-- [Codex app-server](https://learn.chatgpt.com/docs/app-server).
-- [Claude status line](https://code.claude.com/docs/en/statusline), [variáveis de ambiente](https://code.claude.com/docs/en/env-vars) e [CLI](https://code.claude.com/docs/en/cli-reference).
-- [Electron: materiais](https://www.electronjs.org/docs/latest/api/base-window) e [nativeTheme](https://www.electronjs.org/docs/latest/api/native-theme).
-- [electron-liquid-glass](https://github.com/Meridius-Labs/electron-liquid-glass), [Apple NSGlassEffectView](https://developer.apple.com/documentation/appkit/nsglasseffectview).
-- Ícones originais: [OpenAI](https://openai.com/brand/) e [Claude](https://claude.com/). Servem para identificar os provedores; a marca da aplicação é UDV.
+UDV é um projeto independente, sem vínculo oficial com OpenAI ou Anthropic. Os nomes e ícones dos provedores identificam as integrações.

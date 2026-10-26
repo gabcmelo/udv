@@ -6,6 +6,9 @@ const { Settings } = require('./settings.cjs');
 const { createMaterials } = require('./materials.cjs');
 const { popupBounds } = require('./popup-bounds.cjs');
 const { summarize } = require('../shared/usage.cjs');
+const iconDirectory = path.join(__dirname, 'assets');
+const appIcon = path.join(iconDirectory, process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+const trayIcons = new Map();
 let popup, panel, tray, store, providers, settings, materials, interval;
 let quitting = false, pinned = false, popupHeight = 250, lastBlur = 0, anchor;
 let addRequest = 0;
@@ -61,6 +64,7 @@ function createPopup(showWhenReady = true) {
   popup = new BrowserWindow({ width: 380, height: popupHeight, show: false, frame: false, resizable: false,
     minimizable: false, maximizable: false, skipTaskbar: true, alwaysOnTop: true, roundedCorners: true,
     transparent: process.platform === 'darwin', backgroundColor: '#00000000', title: 'UDV · Resumo',
+    icon: appIcon,
     webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
   secure(popup, 'popup');
   popup.on('blur', () => { if (!pinned && popup.isVisible()) { lastBlur = Date.now(); hidePopup(); } });
@@ -73,6 +77,7 @@ function showPanel(options = {}) {
   if (!panel || panel.isDestroyed()) {
     panel = new BrowserWindow({ width: 940, height: 720, minWidth: 660, minHeight: 500, show: false,
       backgroundColor: '#00000000', autoHideMenuBar: true, title: 'UDV · Contas',
+      icon: appIcon,
       webPreferences: { preload: path.join(__dirname, 'preload.cjs'), contextIsolation: true, nodeIntegration: false, sandbox: true } });
     secure(panel, 'panel');
     panel.once('ready-to-show', () => { panel.show(); panel.focus(); broadcast('ui:changed'); });
@@ -80,25 +85,16 @@ function showPanel(options = {}) {
   } else { if (panel.isMinimized()) panel.restore(); panel.show(); panel.focus(); broadcast('ui:changed'); }
 }
 function trayImage() {
-  const pixels = Buffer.alloc(32 * 32 * 4);
-  const light = process.platform === 'darwin' || nativeTheme.shouldUseDarkColorsForSystemIntegratedUI;
-  const tone = light ? 238 : 35;
+  const tone = process.platform === 'darwin' ? 'template' : nativeTheme.shouldUseDarkColorsForSystemIntegratedUI ? 'light' : 'dark';
   const badge = store ? summarize(store.accounts.map(a => providers.view(a))).badge : 'unknown';
-  for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) {
-    const i = (y * 32 + x) * 4;
-    const bar = y >= 6 && y < 26 && ((x >= 4 && x < 9 && y >= 17) || (x >= 12 && x < 17 && y >= 6) || (x >= 20 && x < 25 && y >= 12));
-    if (bar) { pixels[i] = tone; pixels[i + 1] = tone; pixels[i + 2] = tone; pixels[i + 3] = 255; }
-    const distance = Math.hypot(x - 26, y - 6);
-    const triangle = x >= 22 && x <= 30 && y >= 2 && y <= 10 && Math.abs(x - 26) <= (y - 2) / 2;
-    const dot = badge === 'unknown' ? distance >= 3 && distance <= 5 : badge === 'near' ? triangle : badge === 'exhausted' && distance <= 5;
-    if (dot) {
-      const color = badge === 'exhausted' ? [92, 104, 240] : badge === 'near' ? [74, 176, 232] : [tone, tone, tone];
-      pixels[i] = color[0]; pixels[i + 1] = color[1]; pixels[i + 2] = color[2]; pixels[i + 3] = 255;
-    }
+  const key = `${tone}-${badge}`;
+  if (!trayIcons.has(key)) {
+    const icon = nativeImage.createFromPath(path.join(iconDirectory, `tray-${key}.png`));
+    if (icon.isEmpty()) throw new Error(`Ícone da bandeja indisponível: ${key}`);
+    if (process.platform === 'darwin') icon.setTemplateImage(true);
+    trayIcons.set(key, icon);
   }
-  const icon = nativeImage.createFromBitmap(pixels, { width: 32, height: 32 });
-  if (process.platform === 'darwin') icon.setTemplateImage(true);
-  return icon;
+  return trayIcons.get(key);
 }
 function rebuildMenu() {
   if (!tray || !settings) return;
@@ -129,6 +125,7 @@ function applyAppearance() {
 function updateSettings(patch) { settings.update(patch); nativeTheme.themeSource = settings.value.theme; applyAppearance(); return uiState(); }
 async function refreshAll(manual = false) { if (providers) { await Promise.allSettled(store.accounts.map(a => providers.refresh(a, { manual }))); changed(); } }
 if (locked) app.whenReady().then(() => {
+  if (process.platform === 'darwin') app.dock?.setIcon(path.join(iconDirectory, 'icon.png'));
   store = new Store(app.getPath('userData')); settings = new Settings(store.root);
   nativeTheme.themeSource = settings.value.theme;
   materials = createMaterials(nativeTheme, settings, app);
