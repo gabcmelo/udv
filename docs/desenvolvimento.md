@@ -28,6 +28,7 @@ npm start
 npm test
 npm run build
 npm run test:desktop
+npm run test:updater
 node scripts/smoke-codex.cjs
 ```
 
@@ -35,12 +36,13 @@ node scripts/smoke-codex.cjs
 - `npm run build` verifica TypeScript e gera o renderizador com Vite.
 - `npm run test:desktop` usa Electron real e um perfil temporário para exercitar as janelas, bandeja, teclado, filtros, favoritos e preferências, sem iniciar login.
 - O smoke de Codex inicializa o app-server com um perfil desconectado, sem chamar um modelo. Exige o CLI instalado.
+- `npm run test:updater`, no Windows, usa Electron e o updater NSIS reais com um servidor local e arquivos fictícios. Verifica download, SHA-512 inválido e falha de rede, sem instalar nada. O teste não valida assinatura nem atualização entre versões instaladas.
 
 Login, renovação de tokens e cotas autenticadas precisam de validação com contas reais. Os testes de posição cobrem cálculos para múltiplos monitores; a validação física de DPI e disposição dos monitores continua necessária.
 
 ## Gerar instaladores
 
-O ícone oficial é o **Órbita**. Somente as fontes `electron/assets/icon.svg` e `electron/assets/symbol.svg` são versionadas. `npm run dev`, `npm run build` e `npm start` geram os formatos nativos quando necessário; `npm run icons` força a regeneração. O conversor do electron-builder pode ser baixado na primeira execução. ICO, ICNS e PNGs ficam fora do Git e entram no pacote final. O favicon usa diretamente o SVG do app.
+O ícone oficial é o **Órbita**. Os arquivos prontos ficam em `electron/assets/`: ICO para Windows, ICNS para macOS e PNGs para as janelas e a bandeja, incluindo temas, alertas e resoluções de tela. Os SVGs originais também ficam nessa pasta; o favicon usa diretamente `icon.svg`. Os formatos nativos são versionados e usados sem geração automática ao executar ou compilar o app. Se a marca mudar, atualize esses arquivos junto com os SVGs.
 
 ```sh
 npm run dist:win
@@ -54,11 +56,13 @@ npm run dist:mac
 
 Os arquivos são gerados em `release/`. O app instalado não precisa de Node.js, mas continua dependendo dos CLIs dos provedores. Os instaladores ainda não têm assinatura ou notarização.
 
-O workflow atual [Desktop builds](../.github/workflows/desktop-build.yml) é manual: compila Windows x64 e macOS arm64/x64 nos respectivos runners e salva os instaladores como artefatos do workflow. A publicação por tag e o atualizador fazem parte do [plano de fechamento da 0.1](atualizacoes.md); ainda não estão implementados.
+O workflow [Desktop builds](../.github/workflows/desktop-build.yml) é manual e salva artefatos de Windows/macOS sem publicar. O workflow [Release](../.github/workflows/release.yml) responde a tags, exige assinatura/notarização e prepara uma Release em rascunho somente após validar os pacotes das duas plataformas. A [rotina de lançamento](lancamento.md) descreve os secrets necessários e a conferência final.
+
+Builds locais usam `--publish never`: geram arquivos sem enviá-los ao GitHub. O manifesto e a configuração do feed são gerados pelo builder; o app consulta Releases públicas sem token. Em desenvolvimento, o atualizador fica desativado.
 
 ## Versão em desenvolvimento
 
-A primeira entrega é a **0.1.0**, ainda em preparação. `package.json`, o pacote raiz do lockfile e a versão de fallback da interface usam esse número. Uma mudança de código não exige mudar a versão.
+A primeira entrega é a **0.1.0**, ainda em preparação. A interface deriva sua versão de `package.json` durante o build e usa `app.getVersion()` no desktop. O lockfile e a tag de lançamento precisam coincidir com o pacote. Uma mudança de código não exige mudar a versão.
 
 A tag `v0.1.0` identifica o commit de fechamento. Correções posteriores recebem versões como `0.1.1`; uma próxima entrega de funcionalidades pode ser `0.2.0`. O [changelog](../CHANGELOG.md) concentra as mudanças destinadas aos usuários.
 

@@ -5,6 +5,8 @@ import { expired, labels, sortAccounts, statusOf, summarize } from '../shared/us
 import type { Account, Provider, UiState } from './types';
 import { shortWindow, UsageRings } from './usage-rings';
 import { demoAccounts } from './demo';
+import { AppUpdate, UpdateReadyNotice, useAppUpdate } from './app-update';
+import { version } from '../package.json';
 import claudeLogo from './assets/claude.png';
 import chatgptWhite from './assets/chatgpt-white.svg';
 import chatgptBlack from './assets/chatgpt-black.svg';
@@ -16,7 +18,7 @@ const isPopup = new URLSearchParams(location.search).get('view') === 'popup';
 document.title = isPopup ? 'UDV · Resumo' : 'UDV · Contas';
 const api = window.udv;
 const initialUi: UiState = { theme: 'system', reduceTransparency: false, dark: matchMedia('(prefers-color-scheme: dark)').matches,
-  reduced: false, highContrast: false, platform: navigator.platform.startsWith('Mac') ? 'darwin' : 'win32', material: 'solid', pinned: false, version: '0.1.0' };
+  reduced: false, highContrast: false, platform: navigator.platform.startsWith('Mac') ? 'darwin' : 'win32', material: 'solid', pinned: false, version };
 function Brand({ provider }: { provider: Provider }) {
   return <span className={`provider-icon ${provider}`} aria-hidden="true">{provider === 'claude'
     ? <img src={claudeLogo} alt="" /> : <><img className="logo-dark" src={chatgptWhite} alt="" /><img className="logo-light" src={chatgptBlack} alt="" /></>}</span>;
@@ -83,14 +85,15 @@ function AddAccount({ close, add }: { close: () => void; add: (provider: Provide
     {error && <p className="error-message" role="alert">{error}</p>}<div className="dialog-actions"><button type="button" onClick={close}>Cancelar</button><button className="primary" disabled={!api || busy || !label.trim()}>{busy ? 'Adicionando…' : 'Adicionar e conectar'}</button></div>
   </form></dialog>;
 }
-function Preferences({ ui, update }: { ui: UiState; update: (patch: Partial<UiState>) => void }) {
+function Preferences({ ui, update, updater }: { ui: UiState; update: (patch: Partial<UiState>) => void; updater: ReturnType<typeof useAppUpdate> }) {
   const materialLabels = { solid: 'Fundo sólido', acrylic: 'Acrylic do Windows', mica: 'Mica do Windows', vibrancy: 'Vibrancy do macOS', 'liquid-glass': 'Liquid Glass do macOS' };
   return <section className="preferences" aria-label="Aparência"><label>Tema<select aria-label="Tema" value={ui.theme} onChange={e => update({ theme: e.target.value as UiState['theme'] })}><option value="system">Seguir o sistema</option><option value="light">Claro</option><option value="dark">Escuro</option></select></label>
     <label className="checkbox-label"><input type="checkbox" checked={ui.reduceTransparency} onChange={e => update({ reduceTransparency: e.target.checked })} />Reduzir transparência</label>
     <span className="appearance-note">{materialLabels[ui.material]}{ui.reduced && !ui.reduceTransparency ? ' · acessibilidade do sistema' : ''}</span>
-    <p>Ao fechar esta janela, o UDV continua junto ao relógio. Para encerrar, clique com o botão direito no ícone e escolha “Sair do UDV”.</p></section>;
+    <p>Ao fechar esta janela, o UDV continua junto ao relógio. Para encerrar, clique com o botão direito no ícone e escolha “Sair do UDV”.</p><AppUpdate updater={updater} /></section>;
 }
 function App() {
+  const updater = useAppUpdate();
   const [accounts, setAccounts] = useState<Account[]>([]); const [ui, setUi] = useState<UiState>(initialUi);
   const [expanded, setExpanded] = useState<string | null>(null); const [modal, setModal] = useState(false); const [prefs, setPrefs] = useState(false);
   const [filter, setFilter] = useState<'all' | Provider>('all'); const [search, setSearch] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState(''); const [now, setNow] = useState(Date.now());
@@ -98,11 +101,12 @@ function App() {
   const [examples, setExamples] = useState<Account[]>(demoAccounts);
   const top = useRef<HTMLDivElement>(null), inner = useRef<HTMLDivElement>(null), footer = useRef<HTMLElement>(null), list = useRef<HTMLDivElement>(null);
   const lastAddRequest = useRef(0);
+  const lastUpdateRequest = useRef(0);
   const focusSummary = () => requestAnimationFrame(() => (inner.current?.querySelector<HTMLButtonElement>('.account-head, .empty-add') || top.current?.querySelector<HTMLButtonElement>('button'))?.focus());
   useEffect(() => {
     if (!api) return;
     const load = () => { api.list().then(setAccounts).catch(() => setError('Não foi possível carregar as contas locais.')); };
-    const appearance = () => { api.ui().then(state => { setUi(state); if (!isPopup && state.addRequest && state.addRequest > lastAddRequest.current) { lastAddRequest.current = state.addRequest; setModal(true); } }).catch(() => setError('Não foi possível carregar as preferências.')); };
+    const appearance = () => { api.ui().then(state => { setUi(state); if (!isPopup && state.addRequest && state.addRequest > lastAddRequest.current) { lastAddRequest.current = state.addRequest; setModal(true); } if (!isPopup && state.updateRequest && state.updateRequest > lastUpdateRequest.current) { lastUpdateRequest.current = state.updateRequest; setPrefs(true); } }).catch(() => setError('Não foi possível carregar as preferências.')); };
     load(); appearance();
     const cleanups = [api.onChange(load), api.onUiChange(appearance), api.onAddAccount(() => setModal(true)), api.onFocus(focusSummary)];
     return () => cleanups.forEach(clean => clean());
@@ -177,7 +181,8 @@ function App() {
     data-material={ui.material} onKeyDown={keyDown}>
     <div ref={top} className="surface-top">{isPopup ? <header className="popup-header"><span className="summary" role="status">{summary.text}</span><button className="icon-button pin-button" aria-pressed={ui.pinned} aria-label={ui.pinned ? 'Desafixar resumo' : 'Fixar resumo aberto'} onClick={() => { if (api) void api.pin(!ui.pinned); else setUi({ ...ui, pinned: !ui.pinned }); }}>{ui.pinned ? <PinOff size={14} /> : <Pin size={14} />}</button></header>
       : <><header className="panel-header"><div><h1>UDV</h1><span className="summary">{summary.text}</span></div><div className="panel-header-actions"><button onClick={() => { if (api) void api.showSummary(); else location.search = '?view=popup' + (demo ? '&demo=1' : ''); }}><ArrowLeft size={14} />Abrir resumo</button><button className="icon-button" aria-label="Aparência e ajuda" aria-expanded={prefs} onClick={() => setPrefs(!prefs)}><Settings2 size={17} /></button></div></header>
-      <div className="panel-toolbar"><div className="filter-tabs" aria-label="Filtrar provedor">{(['all', 'claude', 'codex'] as const).map(p => <button key={p} aria-pressed={filter === p} onClick={() => setFilter(p)}>{p === 'all' ? 'Todas' : p === 'claude' ? 'Claude' : 'Codex'} <small>{shown.filter(a => p === 'all' || a.provider === p).length}</small></button>)}</div><label className="search"><Search size={14} /><input aria-label="Buscar conta" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar conta" /></label><button disabled={busy || !shown.length} onClick={refresh}><RefreshCw size={14} className={busy ? 'spinning' : ''} />Atualizar</button><button onClick={add}><Plus size={14} />Adicionar conta</button></div>{prefs && <Preferences ui={ui} update={updateUi} />}</>}
+      <div className="panel-toolbar"><div className="filter-tabs" aria-label="Filtrar provedor">{(['all', 'claude', 'codex'] as const).map(p => <button key={p} aria-pressed={filter === p} onClick={() => setFilter(p)}>{p === 'all' ? 'Todas' : p === 'claude' ? 'Claude' : 'Codex'} <small>{shown.filter(a => p === 'all' || a.provider === p).length}</small></button>)}</div><label className="search"><Search size={14} /><input aria-label="Buscar conta" value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar conta" /></label><button disabled={busy || !shown.length} onClick={refresh}><RefreshCw size={14} className={busy ? 'spinning' : ''} />Atualizar</button><button onClick={add}><Plus size={14} />Adicionar conta</button></div>{prefs && <Preferences ui={ui} update={updateUi} updater={updater} />}</>}
+      <UpdateReadyNotice updater={updater} popup={isPopup} openPanel={() => { if (api) void api.openPanel({ updates: true }); else panel(); }} />
       {demo && <div className="demo-banner"><span>Demonstração · dados fictícios</span><button onClick={() => toggleDemo(false)}>Sair da demonstração</button></div>}
       {error && <div className="error-message" role="alert"><span>{error}</span><button className="icon-button" aria-label="Fechar erro" onClick={() => setError('')}><X size={13} /></button></div>}
       {notice && <div className="notice" role="status">{notice}</div>}

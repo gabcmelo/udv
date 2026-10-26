@@ -66,9 +66,16 @@ As janelas e os limites dependem do provedor, plano e versão do CLI. Uma leitur
 
 Nesta versão, o app ainda não oferece histórico, notificações ou inicialização automática.
 
-## Mais detalhes
+## Atualizações do app
 
-- [Versões, Releases e atualizações do app](docs/atualizacoes.md): escopo e critérios para fechar a 0.1.
+Em builds instalados, o UDV verifica novas versões ao iniciar e a cada seis horas. Atualizações publicadas são baixadas em segundo plano; você escolhe quando usar **Reiniciar e instalar**. **Depois** adia a instalação. Fechar o painel ou sair do app não instala a atualização automaticamente.
+
+Use **Aparência e ajuda → Atualizações do UDV** ou **Verificar atualizações** no menu da bandeja para consultar manualmente. Durante o desenvolvimento, o atualizador fica desativado.
+
+## Documentação
+
+- [Versões, Releases e atualizações do app](docs/atualizacoes.md): funcionamento e critérios para fechar a 0.1.
+- [Publicar uma versão](docs/lancamento.md): configuração dos certificados e pipeline de lançamento.
 - [Desenvolvimento e distribuição](docs/desenvolvimento.md): comandos, estrutura do código e builds.
 - [Dados e credenciais](docs/privacidade.md): armazenamento local, isolamento e remoção de contas.
 

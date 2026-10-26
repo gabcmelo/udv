@@ -2,114 +2,88 @@
 
 [← Voltar ao README](../README.md)
 
-**Status: proposta para implementação na 0.1.0.** O atualizador e o pipeline de Releases descritos aqui ainda não estão implementados. O escopo da primeira entrega inclui Windows e macOS.
+**Status:** atualizador e pipeline implementados na 0.1.0. A primeira versão continua em desenvolvimento: assinatura, notarização e atualização entre instalações reais ainda precisam de validação nas plataformas de destino. Nenhuma tag de fechamento ou Release foi criada nesta implementação.
 
-## Resultado esperado
+## Atualização no aplicativo
 
-O usuário baixa um instalador pelo GitHub Releases na primeira instalação. Depois, o próprio UDV identifica uma versão mais nova, baixa a atualização em segundo plano e oferece **Reiniciar e instalar**. Contas, credenciais e preferências permanecem no lugar.
+Em um app instalado, o UDV consulta Releases públicas de `gabcmelo/udv` cerca de 15 segundos após iniciar e a cada seis horas. Ao voltar da suspensão, faz uma consulta se o prazo venceu. Em desenvolvimento, as consultas ficam desativadas.
 
-Fechar o painel continua mantendo o app na bandeja. Uma atualização pronta não deve reiniciar o app nem ser instalada ao sair sem a ação explícita do usuário.
+Somente versões estáveis superiores à instalada são aceitas. Drafts e prévias não entram no canal público. A compatibilidade de sistema e arquitetura é tratada pelo `electron-updater` e pelos metadados do builder.
 
-## Versão e tag
+Quando encontra uma atualização, o app baixa o pacote em segundo plano e mostra o progresso em **Aparência e ajuda → Atualizações do UDV**. Depois do download, oferece **Reiniciar e instalar** e um aviso que pode ser adiado com **Depois**. O adiamento é salvo por versão e compartilhado entre as duas janelas.
 
-- **Agora:** `0.1.0` em desenvolvimento, sem tag de fechamento. Os números locais anteriores `0.2.0` e `0.3.0` não representam entregas públicas do projeto.
-- **Fechamento:** `v0.1.0` aponta para o commit exato da primeira entrega.
-- **Correções:** `v0.1.1`, `v0.1.2` e assim por diante.
-- **Próxima entrega de funcionalidades:** `v0.2.0`, quando seu escopo estiver pronto.
+A instalação só começa pela ação explícita. Fechar o painel mantém o app na bandeja; sair do app também não instala automaticamente uma atualização pendente. Ao reabrir, o updater verifica novamente a versão disponível e pode reutilizar seu cache verificado.
 
-Uma alteração de interface ou um commit não muda a versão por si só. As mudanças se acumulam no changelog até o fechamento da entrega. Tags e arquivos de uma versão publicada não devem ser substituídos; uma correção gera uma versão nova.
+**Verificar atualizações** está disponível nas preferências e no menu da bandeja. Consultas manuais têm intervalo mínimo de um minuto. **Atualizar limites** continua separado dessa ação.
 
-O número do pacote, do lockfile, da interface e da tag deve coincidir. Antes do fechamento, eliminar a duplicação do número na interface, derivando o fallback de `package.json` durante o build. O Electron já informa a versão instalada por `app.getVersion()`.
-
-## Experiência de atualização
-
-Proposta de comportamento padrão:
-
-1. Verificar cerca de 15 segundos após a inicialização de um app instalado e a cada seis horas enquanto ele estiver aberto. Ao voltar de suspensão, verificar se o intervalo já venceu.
-2. Consultar somente versões publicadas do canal estável, compatíveis com sistema e arquitetura. Não oferecer drafts, prévias, a versão atual ou versões inferiores.
-3. Baixar automaticamente uma atualização disponível. Mostrar a versão de destino e o progresso em **Aparência e ajuda**, sem abrir janelas por conta própria.
-4. Ao concluir e validar o arquivo, mostrar **UDV X está pronto para instalar** e as ações **Reiniciar e instalar** e **Depois**.
-5. **Depois** mantém a atualização disponível, sem reinstalar ao fechar o painel ou ao sair. A instalação ocorre somente pela ação explícita.
-6. Oferecer **Verificar atualizações** no painel e no menu da bandeja, com resultado visível mesmo quando já estiver atualizado.
-
-Estados que a interface precisa distinguir:
-
-| Estado | Mensagem ou ação |
+| Estado | Comportamento |
 | --- | --- |
-| Verificando | “Verificando atualizações…” |
-| Atualizado | “Você está usando a versão mais recente.” |
-| Baixando | “Baixando UDV X… 42%” |
-| Pronto | “UDV X está pronto para instalar.” / “Reiniciar e instalar” |
-| Falha | “Não conseguimos atualizar o UDV. Tente novamente.” / “Tentar novamente” |
-| Desenvolvimento | “Atualizações do app ficam disponíveis na versão instalada.” |
+| Desenvolvimento | Consulta desativada e explicação visível. |
+| Verificando | Uma consulta por vez, sem abrir janelas automaticamente. |
+| Atualizado | Confirma que não há versão mais recente. |
+| Baixando | Versão de destino e progresso. |
+| Pronto | Instalação explícita ou adiamento. |
+| Falha | App continua utilizável, com opção de tentar novamente. |
 
-Falha de rede, falta de espaço ou erro de validação não podem encerrar o app ou apagar contas. A consulta deve ter controle de concorrência e espera entre tentativas; erros automáticos ficam no painel, sem notificações repetidas. **Atualizar limites** continua uma ação separada de **Verificar atualizações**.
+## Organização do código
 
-## Implementação proposta
+- `electron/updater.cjs`: estado, agenda, controle de concorrência, validação de versão, download e instalação.
+- `electron/main.cjs`: integração com inicialização, suspensão, bandeja e IPC validado por janela/frame.
+- `electron/preload.cjs`: leitura de estado, verificação e instalação; o renderizador não escolhe URLs ou caminhos de instaladores.
+- `src/app-update.tsx`: progresso, ações, erros e adiamento por versão.
+- `tests/updater.test.cjs`: cenários de desenvolvimento, concorrência, erros, versões rejeitadas, agenda e instalação explícita.
 
-Usar `electron-updater` como dependência de produção e GitHub Releases de `gabcmelo/udv` como origem. O `electron-builder` atual permanece responsável pelos instaladores e metadados. A configuração `publish` deve ser explícita, com owner e repository fixos.
+`electron-updater` usa o feed configurado pelo `electron-builder`. Não há token de publicação no app. Os arquivos são baixados por HTTPS e passam pela verificação de integridade do updater; as Releases de produção exigem também pacotes assinados.
 
-Criar `electron/updater.cjs` para concentrar a integração: inicialização, agenda, estado, eventos de progresso e instalação. Configurar download automático, desabilitar instalação automática ao sair (`autoInstallOnAppQuit = false`) e manter downgrade e prévias desabilitados. A política de canal precisa ser explícita mesmo durante os testes.
+A identidade `app.udv.desktop` e o diretório de dados foram preservados. Contas, credenciais e preferências permanecem fora dos arquivos substituídos pelo instalador.
 
-O processo principal expõe somente leitura de estado, verificação e instalação por IPC. O renderizador não fornece URLs, caminhos de instaladores ou comandos. As chamadas usam a mesma validação de janela e frame já existente; popup, painel e bandeja recebem o mesmo estado.
+## Versões
 
-O atualizador funciona apenas em builds instalados e empacotados. Desenvolvimento e testes comuns não consultam Releases. As versões antigas instaladas sem esse mecanismo exigem uma primeira instalação manual da versão que o inclui.
+- `0.1.0`: primeira entrega, ainda em desenvolvimento.
+- `v0.1.0`: tag do commit de fechamento, criada somente após a validação da entrega.
+- `v0.1.1`, `v0.1.2`: correções posteriores.
+- `v0.2.0`: exemplo de próxima entrega de funcionalidades.
 
-Preservar `app.udv.desktop`, a identidade do instalador e a escolha atual do diretório de dados. Builds locais com número `0.3.0` exigem reinstalação manual para a linha `0.1`; não habilitar downgrade automático para acomodá-los.
+A interface deriva a versão de `package.json` durante o build e lê `app.getVersion()` no desktop. A tag e as duas versões raiz do lockfile devem coincidir com o pacote.
 
-## Pacotes das duas plataformas
+Mudanças se acumulam no changelog até o fechamento; cada commit não exige uma versão nova. Tags e binários de uma versão pública não devem ser substituídos. Uma correção exige uma versão superior.
 
-| Destino | Distribuição inicial | Arquivos necessários ao atualizador |
+Instalações antigas sem updater precisam de uma instalação manual da primeira versão que o inclui. Builds locais anteriores numerados como `0.3.0` também exigem reinstalação manual para a linha `0.1`; downgrade automático permanece desativado.
+
+## Pacotes e pipeline
+
+| Destino | Distribuição inicial | Atualização |
 | --- | --- | --- |
-| Windows x64 | Instalador NSIS `.exe` | Instalador, `latest.yml` e `.blockmap` gerados pelo builder. |
-| macOS arm64 e x64 | `.dmg` por arquitetura | `.zip` de atualização por arquitetura, manifesto `latest-mac.yml` e arquivos auxiliares gerados pelo builder. |
+| Windows x64 | Instalador NSIS `.exe` | Instalador, `latest.yml` e blockmap. |
+| macOS arm64 e x64 | DMG por arquitetura | ZIPs, DMGs, blockmaps e `latest-mac.yml` conjunto. |
 
-O build atual do macOS declara apenas DMG; será necessário incluir ZIP. O fluxo de atualização no macOS exige assinatura. A entrega da 0.1 deve incluir assinatura e notarização Apple, assinatura do instalador Windows e teste em sistemas reais. Os certificados e acessos de assinatura precisam estar disponíveis no CI antes da validação final.
+O workflow [Release](../.github/workflows/release.yml) responde a tags estáveis. Ele valida versão e changelog, executa testes e build, gera Windows assinado e macOS assinado/notarizado e confere as assinaturas. Um único build macOS reúne as duas arquiteturas no manifesto.
 
-Gerar os dois pacotes macOS de forma coordenada e conferir que o manifesto publicado referencia os arquivos corretos de ambas as arquiteturas. Não permitir que jobs concorrentes sobrescrevam manifestos parcialmente.
+O job final só começa quando todos os builds passaram. Ele valida a lista completa de arquivos, versões, tamanhos, referências dos manifestos e SHA-512, e prepara uma **Release em rascunho**. Apenas esse job recebe permissão para escrever no repositório.
 
-O download usa HTTPS e a verificação de integridade do updater, além da assinatura de código. Tokens de publicação e certificados ficam nos secrets do CI, nunca dentro do app ou do repositório. A consulta pública de Releases não deve exigir token no computador do usuário.
+Publicar o rascunho disponibiliza a atualização. Se um upload falhar parcialmente, o rascunho continua invisível ao updater e precisa ser revisado. Builds manuais usam `--publish never` e não enviam arquivos ao GitHub.
 
-## Da tag à Release
+Veja [como configurar os certificados e fechar uma versão](lancamento.md).
 
-Fluxo proposto para um novo workflow de lançamento, separado do build manual:
+## Critérios de fechamento
 
-1. Preparar versão e changelog; passar pelos critérios de fechamento.
-2. Criar e enviar uma tag `vX.Y.Z` no commit escolhido.
-3. O workflow confirma que tag, pacote e lockfile coincidem e que a versão segue a política de lançamento. Executa testes e build.
-4. Compilar e assinar Windows x64 e macOS arm64/x64 nos runners correspondentes; notarizar o macOS. Jobs de build não publicam individualmente.
-5. Um job final reúne instaladores, ZIPs, manifestos e blockmaps. Confere a lista esperada, versões e referências dos manifestos antes de anexar tudo a uma Release em rascunho.
-6. Publicar o rascunho completo após a conferência dos pacotes. Só a publicação disponibiliza a atualização aos usuários.
+- [x] Versão centralizada no pacote, sem número fixo duplicado na interface.
+- [x] Updater integrado ao processo principal, painel e bandeja.
+- [x] Download automático e instalação somente por ação explícita.
+- [x] Testes automatizados de falhas, versões inválidas, concorrência e agenda.
+- [x] Workflow por tag, verificação dos pacotes e criação de rascunho conjunto.
+- [ ] Configurar certificados e credenciais de notarização no GitHub Actions.
+- [ ] Executar o pipeline com assinatura/notarização nas plataformas de destino.
+- [ ] Validar instalação inicial no Windows e no macOS Intel/Apple Silicon.
+- [ ] Validar atualização entre duas versões instaladas em um feed de teste, incluindo preservação de contas e credenciais.
+- [ ] Conferir comportamento de adiamento, fechamento e falhas nas instalações reais.
+- [ ] Finalizar o changelog, criar a tag e conferir a Release em rascunho.
+- [ ] Publicar a Release e inserir os links reais de download no README.
 
-Falha de qualquer plataforma impede a publicação da versão conjunta. O token com permissão `contents: write` é limitado ao job de publicação; o checkout e os builds não precisam dessa permissão. Usar publicação explícita para evitar uploads acidentais a partir de builds comuns.
+## Referências
 
-Notas de versão explicam novidades, correções e requisitos para o usuário. A tag identifica o código; a Release reúne os binários e os metadados usados pelo atualizador.
+- [electron-builder 26: atualização automática](https://www.electron.build/v26/docs/features/auto-update/).
+- [electron-builder 26: publicação](https://www.electron.build/v26/docs/publish/).
+- [GitHub: gerenciar Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
 
-## Critérios para fechar a 0.1
-
-- [ ] Um único número de versão alimenta build e interface; pacote e lockfile estão alinhados.
-- [ ] Workflow por tag gera um rascunho completo com Windows x64 e macOS arm64/x64.
-- [ ] Instaladores assinados; macOS notarizado e validado em Mac.
-- [ ] Instalação inicial funciona nos sistemas e arquiteturas de destino.
-- [ ] Duas versões crescentes, instaladas a partir de um feed/repositório de teste, demonstram busca, download, reinício e instalação. O teste não oferece builds fictícios no canal público.
-- [ ] Contas, credenciais, favoritos e preferências sobrevivem à atualização.
-- [ ] Adiar, fechar o painel e sair do app não instalam sem solicitação.
-- [ ] Modo offline, falha de download e arquivo inválido mantêm o app utilizável e permitem tentar novamente.
-- [ ] Versão atual, versão inferior, draft e prévia não são oferecidos no canal estável.
-- [ ] Só a publicação da Release completa expõe a versão; falha em um build não expõe uma entrega parcial.
-- [ ] README apresenta links reais de download para os instaladores e explica o atualizador como recurso disponível.
-
-## Ordem de implementação
-
-1. **Distribuição:** configuração de publicação, ZIP macOS, assinaturas, notarização e workflow por tag com rascunho conjunto.
-2. **Atualizador:** módulo no processo principal, agenda, validação, controle de instalação e persistência necessária para retomar o estado após reabrir.
-3. **Interface:** status, progresso, verificação manual, adiar e reiniciar pelo painel e bandeja.
-4. **Validação e fechamento:** atualização real entre duas versões, preservação de dados, documentação de download e publicação de `v0.1.0`.
-
-## Referências técnicas
-
-- [electron-builder 26: atualização automática](https://www.electron.build/v26/docs/features/auto-update/) — integração, NSIS, ZIP macOS e assinatura.
-- [electron-builder 26: publicação](https://www.electron.build/v26/docs/publish/) — configuração do provedor e política explícita de publicação.
-- [GitHub: gerenciar Releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository) — tags, rascunhos e publicação de binários.
-
-A implementação deve consultar a documentação da versão efetivamente instalada. Uma migração futura para outro major do builder exige rever as configurações de assinatura e os metadados antes de publicar.
+A configuração acompanha o builder 26 instalado. Uma migração de major precisa rever assinatura e metadados antes de publicar.

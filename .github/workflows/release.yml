@@ -1,0 +1,135 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Check version, tag and release notes
+        run: node scripts/validate-release.cjs version "$GITHUB_REF_NAME"
+      - run: npm test
+      - run: npm run build
+
+  windows:
+    needs: verify
+    runs-on: windows-latest
+    env:
+      CSC_LINK: ${{ secrets.WINDOWS_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.WINDOWS_CSC_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Require signing credentials
+        run: node -e "for (const key of ['CSC_LINK','CSC_KEY_PASSWORD']) if (!process.env[key]) throw new Error('Missing secret for ' + key)"
+      - run: npm ci
+      - run: npm run test:updater
+      - run: npm run build
+      - name: Build signed Windows installer without publishing
+        run: npx electron-builder --win --x64 --publish never --config.forceCodeSigning=true
+      - name: Verify executable signatures
+        shell: pwsh
+        run: |
+          $udvExecutables = @(Get-Item -LiteralPath 'release/win-unpacked/UDV.exe') + @(Get-ChildItem -LiteralPath release -Filter '*.exe' -File)
+          foreach ($udvExecutable in $udvExecutables) {
+            $udvSignature = Get-AuthenticodeSignature -LiteralPath $udvExecutable.FullName
+            if ($udvSignature.Status -ne 'Valid') { throw "Invalid signature: $($udvExecutable.Name)" }
+          }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          if-no-files-found: error
+          path: |
+            release/*.exe
+            release/*.exe.blockmap
+            release/latest.yml
+
+  macos:
+    needs: verify
+    runs-on: macos-latest
+    env:
+      CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+      CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Require signing and notarization credentials
+        run: node -e "for (const key of ['CSC_LINK','CSC_KEY_PASSWORD','APPLE_ID','APPLE_APP_SPECIFIC_PASSWORD','APPLE_TEAM_ID']) if (!process.env[key]) throw new Error('Missing secret for ' + key)"
+      - run: npm ci
+      - run: npm run build
+      # One builder invocation merges both architectures into one latest-mac.yml.
+      - name: Build signed and notarized macOS packages without publishing
+        run: npx electron-builder --mac --arm64 --x64 --publish never --config.forceCodeSigning=true --config.mac.notarize=true
+      - name: Verify signatures and notarization tickets
+        run: |
+          for udv_app in release/mac/UDV.app release/mac-arm64/UDV.app; do
+            codesign --verify --deep --strict "$udv_app"
+            xcrun stapler validate "$udv_app"
+            spctl --assess --type execute --verbose "$udv_app"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-macos
+          if-no-files-found: error
+          path: |
+            release/*.dmg
+            release/*.zip
+            release/*.blockmap
+            release/latest-mac.yml
+
+  draft:
+    needs: [windows, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: release
+      - name: Validate complete release and generate asset list
+        run: |
+          node scripts/validate-release.cjs version "$GITHUB_REF_NAME" release-notes.md
+          node scripts/validate-release.cjs artifacts release release-assets.txt
+      - name: Create complete draft without publishing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo 'A Release for this tag already exists. Review it before retrying.' >&2
+            exit 1
+          fi
+          mapfile -t udv_assets < release-assets.txt
+          gh release create "$GITHUB_REF_NAME" --verify-tag --draft --title "UDV ${GITHUB_REF_NAME#v}" --notes-file release-notes.md "${udv_assets[@]}"

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, nativeTheme, screen, shell, dialog } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, nativeImage, nativeTheme, screen, shell, dialog, powerMonitor } = require('electron');
 const path = require('node:path');
 const { Store } = require('./store.cjs');
 const { Providers } = require('./providers.cjs');
@@ -6,12 +6,13 @@ const { Settings } = require('./settings.cjs');
 const { createMaterials } = require('./materials.cjs');
 const { popupBounds } = require('./popup-bounds.cjs');
 const { summarize } = require('../shared/usage.cjs');
+const { createUpdater } = require('./updater.cjs');
 const iconDirectory = path.join(__dirname, 'assets');
 const appIcon = path.join(iconDirectory, process.platform === 'win32' ? 'icon.ico' : 'icon.png');
 const trayIcons = new Map();
-let popup, panel, tray, store, providers, settings, materials, interval;
+let popup, panel, tray, store, providers, settings, materials, interval, updater;
 let quitting = false, pinned = false, popupHeight = 250, lastBlur = 0, anchor;
-let addRequest = 0;
+let addRequest = 0, updateRequest = 0;
 const materialNames = new WeakMap();
 const { dataDirectory } = require('./data-directory.cjs');
 app.setName('UDV');
@@ -25,7 +26,8 @@ function broadcast(channel) { windows().forEach(w => w.webContents.send(channel)
 function uiState(window = popup) {
   return { ...settings.value, dark: nativeTheme.shouldUseDarkColors, reduced: !!materials.reduced(),
     highContrast: !!nativeTheme.shouldUseHighContrastColors, platform: process.platform,
-    material: materialNames.get(window) || 'solid', pinned, addRequest: window === panel ? addRequest : 0, version: app.getVersion() };
+    material: materialNames.get(window) || 'solid', pinned, addRequest: window === panel ? addRequest : 0,
+    updateRequest: window === panel ? updateRequest : 0, version: app.getVersion() };
 }
 function hidePopup() { pinned = false; popup?.hide(); broadcast('ui:changed'); rebuildMenu(); }
 function positionPopup() {
@@ -74,6 +76,7 @@ function createPopup(showWhenReady = true) {
 function showPanel(options = {}) {
   hidePopup();
   if (options.add) addRequest++;
+  if (options.updates) updateRequest++;
   if (!panel || panel.isDestroyed()) {
     panel = new BrowserWindow({ width: 940, height: 720, minWidth: 660, minHeight: 500, show: false,
       backgroundColor: '#00000000', autoHideMenuBar: true, title: 'UDV · Contas',
@@ -98,6 +101,8 @@ function trayImage() {
 }
 function rebuildMenu() {
   if (!tray || !settings) return;
+  const update = updater?.read();
+  const updateBusy = ['checking', 'downloading'].includes(update?.status);
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Abrir resumo', click: showPopup }, { label: 'Abrir painel de contas', click: () => showPanel() },
     { label: 'Atualizar limites', click: () => refreshAll(true) },
@@ -105,6 +110,11 @@ function rebuildMenu() {
     { type: 'separator' },
     { label: 'Aparência', submenu: [['system', 'Seguir o sistema'], ['light', 'Claro'], ['dark', 'Escuro']].map(([theme, label]) => ({ label, type: 'radio', checked: settings.value.theme === theme, click: () => updateSettings({ theme }) })) },
     { label: 'Reduzir transparência', type: 'checkbox', checked: settings.value.reduceTransparency, click: item => updateSettings({ reduceTransparency: item.checked }) },
+    { type: 'separator' },
+    { label: update?.status === 'downloading' ? `Baixando UDV ${update.version}… ${Math.round(update.percent || 0)}%` : update?.status === 'checking' ? 'Verificando atualizações…' : 'Verificar atualizações',
+      enabled: !!updater && update.status !== 'disabled' && !updateBusy,
+      click: () => { showPanel({ updates: true }); void updater.check(); } },
+    ...(update?.status === 'downloaded' ? [{ label: `Reiniciar e instalar UDV ${update.version}`, click: () => { try { updater.install(); } catch { showPanel({ updates: true }); } } }] : []),
     { type: 'separator' }, { label: 'Sair do UDV', click: () => app.quit() }
   ]));
 }
@@ -130,6 +140,12 @@ if (locked) app.whenReady().then(() => {
   nativeTheme.themeSource = settings.value.theme;
   materials = createMaterials(nativeTheme, settings, app);
   providers = new Providers(store, url => shell.openExternal(url), changed);
+  updater = createUpdater({
+    autoUpdater: require('electron-updater').autoUpdater,
+    appVersion: app.getVersion(),
+    enabled: app.isPackaged && ['win32', 'darwin'].includes(process.platform),
+    onChange: () => { broadcast('updates:changed'); rebuildMenu(); }
+  });
   tray = new Tray(trayImage()); tray.setToolTip('UDV · limites por conta'); tray.on('click', togglePopup); rebuildMenu();
   if (!app.isPackaged && process.env.UDV_TEST_USER_DATA_DIR) app.on('udv:test-tray-click', () => tray.emit('click'));
   for (const [channel, handler] of Object.entries({
@@ -146,8 +162,11 @@ if (locked) app.whenReady().then(() => {
       if (response === 1) await providers.remove(a);
     },
     'ui:read': window => uiState(window),
+    'updates:read': () => updater.read(),
+    'updates:check': () => updater.check(),
+    'updates:install': () => { updater.install(); },
     'ui:settings': (window, patch) => { updateSettings(patch); return uiState(window); },
-    'ui:panel': (_window, options) => showPanel({ add: options?.add === true }),
+    'ui:panel': (_window, options) => showPanel({ add: options?.add === true, updates: options?.updates === true }),
     'ui:hide': () => hidePopup(),
     'ui:summary': () => showPopup(),
     'ui:pin': (window, value) => { if (window !== popup || typeof value !== 'boolean') return; pinned = value; broadcast('ui:changed'); rebuildMenu(); },
@@ -162,8 +181,10 @@ if (locked) app.whenReady().then(() => {
   screen.on('display-metrics-changed', () => { anchor = null; positionPopup(); });
   screen.on('display-removed', () => { anchor = null; positionPopup(); });
   interval = setInterval(refreshAll, 60000); refreshAll();
+  updater.start();
+  powerMonitor.on('resume', () => updater.handleResume());
 }).catch(error => { dialog.showErrorBox('Não foi possível iniciar o UDV', error.message); app.quit(); });
 app.on('second-instance', showPopup); app.on('activate', showPopup);
-app.on('before-quit', () => { quitting = true; clearInterval(interval); providers?.close(); });
+app.on('before-quit', () => { quitting = true; clearInterval(interval); providers?.close(); updater?.stop(); });
 app.on('window-all-closed', () => {});
 module.exports = { showPopup, hidePopup, togglePopup, showPanel, getTray: () => tray };

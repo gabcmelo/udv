@@ -4,6 +4,8 @@
 
 O UDV armazena contas, preferências e perfis neste computador. Não há servidor UDV ou sincronização entre dispositivos. Os CLIs continuam se comunicando com os respectivos provedores para autenticação e consulta de limites.
 
+Em builds instalados, o atualizador consulta Releases públicas no GitHub e baixa os arquivos da nova versão. Essas requisições não incluem contas, credenciais ou leituras de uso. O app não contém token de publicação. Fechar o app não instala uma atualização pendente; a instalação depende da ação **Reiniciar e instalar**.
+
 ## Onde os dados ficam
 
 Em instalações novas:

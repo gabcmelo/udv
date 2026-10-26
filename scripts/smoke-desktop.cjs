@@ -12,6 +12,11 @@ async function trayClick(app) { await app.evaluate(({ app }) => app.emit('udv:te
     app = await electron.launch({ args: [root], env });
     const popup = await app.firstWindow(); popup.on('pageerror', e => errors.push(e.message));
     assert.equal(await app.evaluate(({ app }) => app.getName()), 'UDV');
+    const updates = await popup.evaluate(() => window.udv.updater());
+    assert.equal(updates.status, 'disabled');
+    assert.equal(updates.currentVersion, require('../package.json').version);
+    assert.equal((await popup.evaluate(() => window.udv.checkForUpdates())).status, 'disabled');
+    await assert.rejects(popup.evaluate(() => window.udv.installUpdate()), /Nenhuma atualização pronta/);
     await expect(popup).toHaveTitle('UDV · Resumo');
     await expect(popup.locator('.popup .empty-state h2')).toHaveText('Nenhuma conta conectada');
     const initial = (await windowInfo(app)).find(w => w.role === 'popup');
@@ -48,6 +53,8 @@ async function trayClick(app) { await app.evaluate(({ app }) => app.emit('udv:te
     await expect(panel.getByRole('heading', { name: 'Nenhuma conta encontrada' })).toBeVisible();
     await panel.getByRole('button', { name: 'Limpar filtros' }).click();
     await panel.getByRole('button', { name: 'Aparência e ajuda' }).click();
+    await expect(panel.getByRole('region', { name: 'Atualizações do UDV' })).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Verificar atualizações', exact: true })).toBeDisabled();
     await panel.getByLabel('Tema', { exact: true }).selectOption('light');
     await expect(panel.locator('.surface')).toHaveClass(/light/);
     await panel.getByLabel('Reduzir transparência', { exact: true }).click();

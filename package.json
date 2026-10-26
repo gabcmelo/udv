@@ -5,19 +5,16 @@
   "description": "Suas contas de IA, de relance. Acompanhe o uso de Claude e Codex.",
   "main": "electron/main.cjs",
   "scripts": {
-    "predev": "node scripts/generate-icons.cjs --if-needed",
     "dev": "node scripts/dev.mjs",
     "preview": "vite --host 127.0.0.1",
-    "prebuild": "node scripts/generate-icons.cjs --if-needed",
     "build": "tsc --noEmit && vite build",
-    "prestart": "node scripts/generate-icons.cjs --if-needed",
     "start": "electron .",
     "test": "node --test tests/*.test.cjs",
     "test:desktop": "node scripts/smoke-desktop.cjs",
-    "icons": "node scripts/generate-icons.cjs",
-    "dist": "npm run build && electron-builder",
-    "dist:win": "npm run build && electron-builder --win",
-    "dist:mac": "npm run build && electron-builder --mac"
+    "test:updater": "node scripts/smoke-updater-download.cjs",
+    "dist": "npm run build && electron-builder --publish never",
+    "dist:win": "npm run build && electron-builder --win --x64 --publish never",
+    "dist:mac": "npm run build && electron-builder --mac --arm64 --x64 --publish never"
   },
   "keywords": [],
   "author": "Gabriel Melo",
@@ -26,6 +23,12 @@
   "build": {
     "appId": "app.udv.desktop",
     "productName": "UDV",
+    "publish": {
+      "provider": "github",
+      "owner": "gabcmelo",
+      "repo": "udv",
+      "releaseType": "draft"
+    },
     "directories": {
       "output": "release"
     },
@@ -54,13 +57,15 @@
     "mac": {
       "icon": "electron/assets/icon.icns",
       "target": [
-        "dmg"
+        "dmg",
+        "zip"
       ],
       "category": "public.app-category.developer-tools",
       "artifactName": "UDV-${version}-macOS-${arch}.${ext}"
     }
   },
   "dependencies": {
+    "electron-updater": "6.8.11",
     "lucide-react": "^1.61.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
@@ -73,6 +78,7 @@
     "@vitejs/plugin-react": "^6.1.2",
     "electron": "^45.0.0",
     "electron-builder": "^26.18.0",
+    "js-yaml": "4.3.2",
     "typescript": "^7.0.2",
     "vite": "^8.3.5"
   },
