@@ -1,0 +1,32 @@
+.usage-rings{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:14px;padding:4px 14px 2px;font-size:12px;line-height:1.3;font-variant-numeric:tabular-nums}
+.rings-claude{--ring-0:#e29472;--ring-1:#cc7654;--ring-2:#aa573b}
+.rings-codex{--ring-0:#f0ede5;--ring-1:#c9c4b9;--ring-2:#a49d90}
+.light .rings-claude{--ring-0:#bd5e3c;--ring-1:#a74c2b;--ring-2:#853a22}
+.light .rings-codex{--ring-0:#fffdf7;--ring-1:#ded9cf;--ring-2:#bcb4a6}
+.rings-chart{display:block;flex:none;overflow:visible;fill:none}
+.ring-tone-0{--ring-color:var(--ring-0)}.ring-tone-1{--ring-color:var(--ring-1)}.ring-tone-2{--ring-color:var(--ring-2)}
+.ring-track{stroke:var(--track)}.ring-fill{stroke:var(--ring-color)}
+.ring-unknown{stroke:var(--muted);stroke-opacity:.55;stroke-dasharray:2 3}
+.ring-band.unconfirmed .ring-fill{opacity:.45}
+.light .rings-codex .ring-fill{filter:drop-shadow(0 0 .75px #625b50)}
+.ring-center.exhausted{fill:var(--danger)}.ring-center.near{fill:var(--near)}
+.ring-center.unconfirmed,.ring-center.unknown{stroke:var(--muted);stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
+.rings-legend{display:flex;flex-direction:column;min-width:0}
+.ring-reading{display:grid;grid-template-columns:8px minmax(0,1fr) auto;align-items:center;column-gap:8px;padding:2px 0;min-width:0}
+.ring-key{display:block;width:8px;height:8px;border-radius:50%;background:var(--ring-color)}
+.light .rings-codex .ring-key{box-shadow:0 0 0 .75px #82796b}
+.ring-reading.unknown .ring-key{background:transparent;border:1px dashed var(--muted);box-shadow:none}
+.ring-description{display:flex;flex-direction:column;min-width:0}
+.ring-description>b{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ring-reset{color:var(--muted);font-size:11.5px;overflow-wrap:anywhere}
+.ring-values{display:flex;flex-direction:column;align-items:flex-end;white-space:nowrap;align-self:start}
+.ring-values b{font-weight:600}.ring-remaining{color:var(--muted);font-size:11.5px}
+.ring-reading.near .ring-values b{color:var(--near)}.ring-reading.exhausted .ring-values b{color:var(--danger)}
+.ring-reading.unconfirmed .ring-values{color:var(--muted)}
+.panel .usage-rings{max-width:530px}
+.high-contrast .usage-rings{--ring-0:CanvasText;--ring-1:CanvasText;--ring-2:CanvasText}
+.high-contrast .ring-fill{filter:none}.high-contrast .ring-key{box-shadow:none;border:1px solid CanvasText}
+.high-contrast .ring-track{stroke:GrayText}.high-contrast .ring-center{stroke:CanvasText}
+.high-contrast .ring-center.exhausted,.high-contrast .ring-center.near{fill:CanvasText}
+.high-contrast .ring-values b{color:CanvasText}
+@media(forced-colors:active){.usage-rings{--ring-0:CanvasText;--ring-1:CanvasText;--ring-2:CanvasText}.ring-fill{stroke:CanvasText;filter:none!important}.ring-track{stroke:GrayText}.ring-key{background:CanvasText}.ring-unknown{stroke:CanvasText}}

@@ -1,0 +1,22 @@
+const { contextBridge, ipcRenderer } = require('electron');
+contextBridge.exposeInMainWorld('udv', {
+  list: () => ipcRenderer.invoke('accounts:list'),
+  add: (provider, label) => ipcRenderer.invoke('accounts:add', provider, label),
+  connect: id => ipcRenderer.invoke('accounts:connect', id),
+  cancel: id => ipcRenderer.invoke('accounts:cancel', id),
+  refresh: id => ipcRenderer.invoke('accounts:refresh', id),
+  remove: id => ipcRenderer.invoke('accounts:remove', id),
+  openClaude: id => ipcRenderer.invoke('accounts:claude', id),
+  update: (id, patch) => ipcRenderer.invoke('accounts:update', id, patch),
+  ui: () => ipcRenderer.invoke('ui:read'),
+  settings: patch => ipcRenderer.invoke('ui:settings', patch),
+  openPanel: options => ipcRenderer.invoke('ui:panel', options),
+  showSummary: () => ipcRenderer.invoke('ui:summary'),
+  hideSummary: () => ipcRenderer.invoke('ui:hide'),
+  pin: value => ipcRenderer.invoke('ui:pin', value),
+  resizeSummary: height => ipcRenderer.invoke('ui:height', height),
+  onUiChange: callback => { const listener = () => callback(); ipcRenderer.on('ui:changed', listener); return () => ipcRenderer.removeListener('ui:changed', listener); },
+  onAddAccount: callback => { const listener = () => callback(); ipcRenderer.on('ui:add-account', listener); return () => ipcRenderer.removeListener('ui:add-account', listener); },
+  onFocus: callback => { const listener = () => callback(); ipcRenderer.on('ui:focus', listener); return () => ipcRenderer.removeListener('ui:focus', listener); },
+  onChange: callback => { const handler = () => callback(); ipcRenderer.on('accounts:changed', handler); return () => ipcRenderer.removeListener('accounts:changed', handler); }
+});

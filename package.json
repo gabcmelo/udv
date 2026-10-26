@@ -1,0 +1,74 @@
+{
+  "name": "usage-dash-view",
+  "version": "0.3.0",
+  "private": true,
+  "description": "Suas contas de IA, de relance. Acompanhe o uso de Claude e Codex.",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "preview": "vite --host 127.0.0.1",
+    "build": "tsc --noEmit && vite build",
+    "start": "electron .",
+    "test": "node --test tests/*.test.cjs",
+    "test:desktop": "node scripts/smoke-desktop.cjs",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac"
+  },
+  "keywords": [],
+  "author": "Gabriel Melo",
+  "license": "UNLICENSED",
+  "type": "module",
+  "build": {
+    "appId": "app.udv.desktop",
+    "productName": "UDV",
+    "directories": {
+      "output": "release"
+    },
+    "asarUnpack": [
+      "node_modules/electron-liquid-glass/**/*"
+    ],
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "shared/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "artifactName": "UDV-${version}-Windows-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools",
+      "artifactName": "UDV-${version}-macOS-${arch}.${ext}"
+    }
+  },
+  "dependencies": {
+    "lucide-react": "^1.61.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
+  },
+  "optionalDependencies": {
+    "electron-liquid-glass": "^1.1.1"
+  }
+}

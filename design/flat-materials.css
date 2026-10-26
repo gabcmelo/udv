@@ -1,0 +1,144 @@
+/* ===== Refinamento flat + materiais do sistema (anexar ao fim) ===== */
+/* Tokens: escuro é o padrão; #screen.theme-light troca o tema; .win/.mac escolhem o material. */
+.screen{
+  --tx:#f5f5f5;--mu:#b9bec7;--ln:rgba(255,255,255,.10);
+  --hover:rgba(255,255,255,.07);--hover2:rgba(255,255,255,.12);--sf2:var(--hover);
+  --tr:rgba(255,255,255,.16);--ok:#c9d0dc;--near:#f2bb5a;--out:#ff8075;--act:#7db4f0;--on-act:#0b1220;
+  --tag-unk:#cdd2da;--hatch:rgba(255,255,255,.30);--detail:rgba(255,255,255,.04);
+  --codex-filter:invert(1);            /* ícone Codex monocromático preto -> claro no tema escuro */
+  --grain:none;--blur:none;--rim:none;
+}
+.screen.theme-light{
+  --tx:#1b1c1f;--mu:#4f5560;--ln:rgba(0,0,0,.10);
+  --hover:rgba(0,0,0,.05);--hover2:rgba(0,0,0,.09);
+  --tr:rgba(0,0,0,.13);--ok:#566070;--near:#8a5a00;--out:#b3261e;--act:#0b5cad;--on-act:#fff;
+  --tag-unk:#3f4651;--hatch:rgba(0,0,0,.32);--detail:rgba(0,0,0,.035);
+  --codex-filter:none;
+}
+
+/* Windows: Fluent / Acrylic (fumaça translúcida + grão muito sutil) */
+.screen.win{
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  --glass:rgba(32,32,32,.72);--solid:#262626;--edge:rgba(255,255,255,.09);
+  --bar-glass:rgba(28,28,28,.72);--bar-solid:#1f1f1f;
+  --blur:blur(30px) saturate(1.4);
+  --shadow:0 8px 24px rgba(0,0,0,.34);--r:8px;--rc:4px;
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  background:
+    radial-gradient(55% 65% at 18% 25%,rgba(58,96,170,.42),transparent 70%),
+    radial-gradient(50% 60% at 88% 72%,rgba(120,70,150,.34),transparent 70%),
+    radial-gradient(40% 50% at 55% 100%,rgba(30,120,130,.24),transparent 70%),#12151b;
+}
+.screen.win.theme-light{
+  --glass:rgba(243,243,243,.74);--solid:#f3f3f3;--edge:rgba(0,0,0,.09);
+  --bar-glass:rgba(243,243,243,.72);--bar-solid:#ececec;
+  --shadow:0 8px 24px rgba(0,0,0,.18);
+  --grain:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .9 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.05'/%3E%3C/svg%3E");
+  background:
+    radial-gradient(55% 65% at 18% 25%,rgba(120,160,235,.55),transparent 70%),
+    radial-gradient(50% 60% at 88% 72%,rgba(210,150,200,.45),transparent 70%),
+    radial-gradient(40% 50% at 55% 100%,rgba(130,200,205,.40),transparent 70%),#dde3ee;
+}
+
+/* macOS: Liquid Glass (vidro translúcido, borda discreta, sem grão; UI interna flat) */
+.screen.mac{
+  font-family:-apple-system,"SF Pro Text",system-ui,sans-serif;
+  --glass:rgba(38,38,42,.60);--solid:#2b2b2f;--edge:rgba(255,255,255,.16);
+  --bar-glass:rgba(30,30,34,.38);--bar-solid:#242427;
+  --blur:blur(40px) saturate(1.8);--rim:inset 0 1px 0 rgba(255,255,255,.10);
+  --shadow:0 12px 32px rgba(0,0,0,.30);--r:18px;--rc:8px;
+  background:
+    radial-gradient(55% 60% at 70% 0%,rgba(70,100,190,.46),transparent 70%),
+    radial-gradient(50% 60% at 12% 60%,rgba(130,70,140,.30),transparent 70%),
+    radial-gradient(45% 50% at 85% 100%,rgba(30,130,140,.26),transparent 70%),#12141a;
+}
+.screen.mac.theme-light{
+  --glass:rgba(246,246,248,.62);--solid:#f4f4f6;--edge:rgba(255,255,255,.75);
+  --bar-glass:rgba(246,246,248,.45);--bar-solid:#e9e9ec;--rim:inset 0 0 0 .5px rgba(0,0,0,.10);
+  --shadow:0 12px 32px rgba(0,0,0,.16);
+  background:
+    radial-gradient(55% 60% at 70% 0%,rgba(125,160,235,.60),transparent 70%),
+    radial-gradient(50% 60% at 12% 60%,rgba(215,155,205,.45),transparent 70%),
+    radial-gradient(45% 50% at 85% 100%,rgba(120,205,210,.42),transparent 70%),#e1e5ef;
+}
+
+/* Superfície única e contínua: flyout, menu, toast, aviso */
+.screen .fly,.screen .ctx,.screen .toast,.screen .quit div{
+  background-color:var(--glass);background-image:var(--grain);
+  -webkit-backdrop-filter:var(--blur);backdrop-filter:var(--blur);
+  border:1px solid var(--edge);border-radius:var(--r);box-shadow:var(--shadow),var(--rim);color:var(--tx);
+}
+.screen .ctx{border-radius:calc(var(--r) - 2px);padding:4px}
+.screen.mac .ctx{border-radius:12px}
+.screen .toast{border-radius:var(--r)}
+.screen .quit{background:rgba(0,0,0,.50)}
+.screen.theme-light .quit{background:rgba(255,255,255,.55)}
+/* Janela do painel: mais estável (Mica no Windows; vibrancy no Mac) */
+.screen .appwin{
+  background-color:var(--glass);background-image:var(--grain);
+  -webkit-backdrop-filter:blur(60px) saturate(1.3);backdrop-filter:blur(60px) saturate(1.3);
+  border:1px solid var(--edge);border-radius:var(--r);box-shadow:var(--shadow),var(--rim);color:var(--tx);
+}
+.screen.win .appwin{background-color:color-mix(in srgb,var(--solid) 92%,transparent)}
+/* Barras simuladas */
+.screen .bwin,.screen .bmac{background:var(--bar-glass);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px);border-color:var(--ln)}
+.screen .dm{background:var(--mu);opacity:.35}
+.screen #tray svg{stroke:var(--tx)}
+.screen #tray:hover,.screen #tray[aria-expanded=true]{background:var(--hover2)}
+.screen .bd.out{box-shadow:0 0 0 1.5px var(--bar-solid)}
+.screen .bd.attn{background:var(--bar-solid);border-color:var(--tx)}
+
+/* Flat: sem fundos aninhados, divisórias discretas, sem relevo */
+.screen .fh,.screen .ff{background:transparent;border-color:var(--ln)}
+.screen .acct{border-bottom-color:var(--ln)}
+.screen .adi{background:var(--detail)}
+.screen .st,.screen .sb,.screen .fr,.screen .wl,.screen .rs,.screen .hn,.screen .adi dt,.screen .mu{color:var(--mu)}
+.screen .st.flash,.screen .pf.flash{color:var(--tx)}
+.screen .ah:hover,.screen .ff button:hover:not(:disabled),.screen .ib:hover,.screen .ctx button:hover,.screen .ctx button:focus-visible{background:var(--hover)}
+.screen .ff button:hover:not(:disabled),.screen .ib:hover{color:var(--tx)}
+.screen .ib{border-radius:var(--rc)}
+.screen .ib[aria-pressed=true]{color:var(--act);background:color-mix(in srgb,var(--act) 16%,transparent)}
+.screen .gb{border:0;background:var(--hover);border-radius:var(--rc)}
+.screen .gb:hover{background:var(--hover2)}
+.screen .pri{background:var(--act);color:var(--on-act);border-radius:var(--rc)}
+.screen .lk{color:var(--act)}
+.screen .seg{border:0;background:var(--hover);border-radius:var(--rc)}
+.screen .seg button{color:var(--mu)}
+.screen .seg button[aria-pressed=true]{background:var(--hover2);color:var(--tx)}
+.screen .ctx button{border-radius:var(--rc)}
+.screen .ctx hr{border-top-color:var(--ln)}
+.screen .tb,.screen .pt,.screen .pr,.screen .pf{border-color:var(--ln)}
+.screen.mac .fh{border-bottom-color:transparent}
+.screen.mac .acct{border-bottom:0;background:linear-gradient(var(--ln),var(--ln)) 14px 100%/calc(100% - 28px) 1px no-repeat}
+.screen.mac .acct:last-child{background:none}
+.screen .ah:focus-visible,.screen .ff button:focus-visible{outline-offset:-2px}
+
+/* Barras e tags */
+.screen .bar2{height:4px;border-radius:2px;background:var(--tr)}
+.screen .bar2>i{border-radius:2px;background:var(--ok)}
+.screen .near .bar2>i{background:var(--near)}
+.screen .out .bar2{box-shadow:inset 0 0 0 1px var(--out)}
+.screen .unk .bar2{background:repeating-linear-gradient(135deg,var(--hatch) 0 3px,transparent 3px 6px)}
+.screen .dim .bar2>i{background-image:repeating-linear-gradient(135deg,var(--solid) 0 2px,transparent 2px 4px)}
+.screen .tg{border-color:color-mix(in srgb,currentColor 55%,transparent)}
+.screen .t-neterr,.screen .t-expired,.screen .t-none,.screen .t-stale{color:var(--tag-unk);border-style:dashed}
+.screen .near .wp b{color:var(--near)}.screen .out .wp b{color:var(--out)}
+
+/* Logos oficiais: sem tile; preserva proporção. Claude mantém a cor da marca; só o Codex (monocromático) acompanha o tema. */
+.screen .chip,.screen .chip.claude,.screen .chip.codex{width:22px;height:22px;background:none;border-radius:0;font-size:0;color:inherit}
+.screen .chip img{display:block;width:20px;height:20px;object-fit:contain}
+.screen .chip.codex img{filter:var(--codex-filter)}
+
+/* Aviso do estudo, fora da proposta */
+.ctl::after{content:"Material simulado no navegador";margin-left:auto;color:var(--mu)}
+
+/* Transparência reduzida: sólido por tema, sem blur nem grão, contraste reforçado */
+#screen.reduced-transparency{--blur:none;--grain:none;--rim:none;--glass:var(--solid);--bar-glass:var(--bar-solid);--mu:#cbd0d8;--ln:rgba(255,255,255,.18);--edge:rgba(255,255,255,.28)}
+#screen.reduced-transparency.theme-light{--mu:#3b414b;--ln:rgba(0,0,0,.20);--edge:rgba(0,0,0,.30)}
+#screen.reduced-transparency .appwin,#screen.reduced-transparency .bwin,#screen.reduced-transparency .bmac{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--solid)}
+@media (prefers-reduced-transparency:reduce){
+  #screen{--blur:none;--grain:none;--rim:none;--glass:var(--solid);--bar-glass:var(--bar-solid);--mu:#cbd0d8;--ln:rgba(255,255,255,.18);--edge:rgba(255,255,255,.28)}
+  #screen.theme-light{--mu:#3b414b;--ln:rgba(0,0,0,.20);--edge:rgba(0,0,0,.30)}
+  #screen .appwin,#screen .bwin,#screen .bmac{-webkit-backdrop-filter:none;backdrop-filter:none;background-color:var(--solid)}
+}
+@media (prefers-reduced-motion:reduce){.screen .fly,.screen .chev,.screen .ad,.screen .toast{transition:none!important}}

@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const path = require('node:path');
+const design = path.resolve(__dirname, '../design');
+const target = path.join(design, 'tray-prototype.html');
+const baseline = path.join(design, 'tray-prototype-flat.html');
+if (!fs.existsSync(baseline)) fs.copyFileSync(target, baseline);
+let html = fs.readFileSync(baseline, 'utf8');
+html = html.replace('</style>', fs.readFileSync(path.join(design, 'rings.css'), 'utf8') + '\n</style>');
+html = html.replace('</body>', '<script>\n' + fs.readFileSync(path.join(design, 'rings.js'), 'utf8').replace(/<\/script/gi, '<\\/script') + '\n</script>\n</body>');
+fs.writeFileSync(target, html);
+console.log('Protótipo de anéis atualizado; versão flat preservada em design/tray-prototype-flat.html.');
